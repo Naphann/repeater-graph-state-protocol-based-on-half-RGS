@@ -1,24 +1,21 @@
 #! usr/bin/python3
 
-from helper import Pauli, Node
+from node_qubit import Pauli, Node
 import stim
 
 
-def tree_code_physical_measure(t: stim.TableauSimulator, root: Node, is_starting_with_x: bool):
-    queue = root.children
-    is_x_basis = is_starting_with_x
-    while len(queue) > 0:
-        temp_queue = []
-        for u in queue:
-            if is_x_basis:
+def tree_code_physical_measure(t: stim.TableauSimulator, root: Node, logical_basis: Pauli):
+
+    def __recurse_measure(t: stim.TableauSimulator, u: Node, physical_basis: Pauli):
+        if not u.is_lost:
+            if physical_basis == Pauli.X:
                 t.h(u.qubit_index)
-            if not u.is_lost:
-                # if the qubit is lost, don't record or assign measurement result
-                u.eigenvalue = u.measurement_result = t.measure(u.qubit_index)
-                u.measurement_basis = Pauli.X if is_x_basis else Pauli.Z
-            temp_queue.extend(u.children)
-        is_x_basis = not is_x_basis
-        queue = temp_queue
+            u.measurement_result = u.eigenvalue = t.measure(u.qubit_index)
+            u.measurement_basis = physical_basis
+        next_basis = Pauli.X if physical_basis == Pauli.Z else Pauli.Z
+        [__recurse_measure(t, v, next_basis) for v in u.children]
+
+    [__recurse_measure(t, v, logical_basis) for v in root.children]
 
 
 def __get_z_result(root: Node) -> bool | None:
@@ -43,6 +40,8 @@ def __get_z_result(root: Node) -> bool | None:
 def decode_tree_logical_z(root: Node) -> bool | None:
     """find the XOR (parity) of the first level nodes"""
     zs = [__get_z_result(u) for u in root.children]
+    if len(zs) == 0:
+        raise RuntimeError("We should not encounter this at all!")
     if any(map(lambda z: z is None, zs)):
         return None
     logical_z = False

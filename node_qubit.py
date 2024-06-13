@@ -23,7 +23,7 @@ class Node:
         self.qubit_index = qubit_index
         self.parent_index = parent_index  # for debugging
         self.measurement_result: bool | None = None  # this should be True and False if the qubit has been measured indicating the raw measurement result
-        self.eigenvalue: bool = False  # use this to track the decoded measurement (after taking side effect and raw results into account)
+        self.eigenvalue: bool | None = None  # use this to track the decoded measurement (after taking side effect and raw results into account)
         self.measurement_basis: Pauli | None = None
         self.children: list[Node] = []
         self.is_lost = False  # this is used to denote whether the qubit is lost in the fiber or not
@@ -41,7 +41,6 @@ class Node:
         return return_list
 
     def get_indices_from_level(self, k: int) -> list[int]:
-        # Not that we need it right now?
         """get all the indices from the nodes"""
         cur_level = 0
         queue = [self]

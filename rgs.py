@@ -1,10 +1,11 @@
 #! usr/bin/python3
 
-from helper import Pauli, Node
-from tree_code_helper import decode_tree_logical_x, decode_tree_logical_z
+import numpy as np
 import random
 import stim
-import numpy as np
+from node_qubit import Pauli, Node
+from test_helper import verify_vertex_stabilizer
+from tree_code_helper import decode_tree_logical_x, decode_tree_logical_z
 
 
 def helper_assign_qubit_indices(root: Node, bv: list[int], starting_index: int) -> int:
@@ -21,11 +22,6 @@ def helper_assign_qubit_indices(root: Node, bv: list[int], starting_index: int) 
                 u.children.append(v)
                 temp_queue.append(v)
         queue = temp_queue
-    # u = self.arms[0]
-    # for i in range(len(self.bv) + 1):
-    #     vs = u.get_indices_from_level(i)
-    #     print(f'{i} - {vs}')
-
     # return the next unused index
     return cur_index
 
@@ -66,6 +62,9 @@ def helper_initialize_rgs_arm(t: stim.TableauSimulator, root: Node, anchor: int,
             temp_queue.extend(u.children)
         queue = temp_queue
 
+    # verify anchor stabilizer
+    verify_vertex_stabilizer(t, root_ancilla, [u.qubit_index for u in root.children], 1)
+
     # join inner and outer qubits
     t.cz(anchor, outer_emitter)
     t.cz(root_ancilla, outer_emitter)
@@ -76,27 +75,26 @@ def helper_initialize_rgs_arm(t: stim.TableauSimulator, root: Node, anchor: int,
         # flip first level qubits
         for u in root.children:
             u.has_z = not u.has_z
-            # t.z(u.qubit_index)
 
     if meas_root:
         # flip outer qubits (and return the flip to the anchor)
         root.has_z = not root.has_z
-        # t.z(root.qubit_index)
+
+    assert meas_root == root.has_z
+    verify_vertex_stabilizer(t, root.qubit_index, [u.qubit_index for u in root.children], -1 if root.has_z else 1)
 
     return meas_root
 
 
-def helper_process_photon_loss(t: stim.TableauSimulator, root: Node, loss_probability: float, rng: np.random.default_rng):
+def helper_process_photon_loss(t: stim.TableauSimulator, root: Node, loss_probability: float, rng: np.random.Generator):
     """traverse the tree and apply loss probability to all qubits
     If a qubit is lost, randomly select Pauli X, Y, or Z to apply followed by a measurement in the Z basis.
     """
-    # print(f"inside helper with loss_probability : {loss_probability}")
     queue = [root]
     while len(queue) > 0:
         temp_queue = []
         for u in queue:
             temp_queue.extend(u.children)
-            # if random.random() < loss_probability:
             if rng.random() < loss_probability:
                 q = u.qubit_index
                 u.is_lost = True
@@ -111,21 +109,8 @@ def helper_process_photon_loss(t: stim.TableauSimulator, root: Node, loss_probab
         queue = temp_queue
 
 
-def helper_update_side_effect_outer(outer: Node):
-    if not outer.is_lost and outer.has_z:
-        outer.eigenvalue = not outer.eigenvalue
-
-
-def helper_update_side_effect_inner(root: Node, is_measured_x: bool):
-    if not root.is_lost and is_measured_x and root.has_z:
-        root.eigenvalue = not root.eigenvalue
-    for v in root.children:
-        helper_update_side_effect_inner(v, not is_measured_x)
-
-
 def helper_update_eigenvalue_with_side_effect(root: Node):
-    if not root.is_lost and root.measurement_basis == Pauli.X and root.has_z:
-        # print('this should not be called atm')
+    if (not root.is_lost) and (root.measurement_basis == Pauli.X) and (root.has_z):
         root.eigenvalue = not root.eigenvalue
     for v in root.children:
         helper_update_eigenvalue_with_side_effect(v)
@@ -160,6 +145,10 @@ class HalfRGS:
             anchor_has_z = anchor_has_z ^ helper_initialize_rgs_arm(t, root, self.anchor, outer_emitter, root_ancilla)
         if anchor_has_z:
             t.z(self.anchor)
+        first_level_qubits = []
+        for root in self.arms:
+            first_level_qubits.extend([u.qubit_index for u in root.children])
+        verify_vertex_stabilizer(t, self.anchor, first_level_qubits, 1)
 
     def get_bsm_arm(self) -> Node:
         return self.arms[self.successful_arm_index]
@@ -176,11 +165,18 @@ class HalfRGS:
     def decode_logical_results(self) -> bool:
         """decoding the logical measurements of the inner qubits
         Returns False when the decoding fail and the trial needs retried"""
+        flag = True
         for i, u in enumerate(self.arms):
             if i == self.successful_arm_index:
                 self.logical_results[i] = decode_tree_logical_x(u)
+                if decode_tree_logical_x(u) is None:
+                    flag = False
             else:
                 self.logical_results[i] = decode_tree_logical_z(u)
+                if decode_tree_logical_z(u) is None:
+                    flag = False
+        if all(map(lambda res: res is not None, self.logical_results)) != flag:
+            raise RuntimeError("Fuck!")
         return all(map(lambda res: res is not None, self.logical_results))
 
     def count_lost_photons(self) -> tuple[int, int]:
@@ -260,10 +256,6 @@ class RGS:
             for root in self.left_arms:
                 for u in root.children:
                     u.has_z = not u.has_z
-
-        # print('*****')
-        # print(t.canonical_stabilizers())
-        # print('*****')
 
     def process_photon_loss(self, t: stim.TableauSimulator, loss_probability: float, rng: np.random.default_rng):
         for root in self.left_arms:
