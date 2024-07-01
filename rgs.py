@@ -1,9 +1,11 @@
 #! usr/bin/python3
 
-import numpy as np
 import random
+
+import numpy as np
 import stim
-from node_qubit import Pauli, Node
+
+from node_qubit import Node, Pauli
 from test_helper import verify_vertex_stabilizer
 from tree_code_helper import decode_tree_logical_x, decode_tree_logical_z
 

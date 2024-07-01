@@ -1,7 +1,8 @@
 #! usr/bin/python3
 
-import numpy as np
 from enum import Enum
+
+import numpy as np
 
 Pauli = Enum("Pauli", ["I", "X", "Y", "Z"])
 

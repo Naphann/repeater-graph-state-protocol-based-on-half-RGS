@@ -1,7 +1,8 @@
 #! usr/bin/python3
 
-from node_qubit import Pauli, Node
 import stim
+
+from node_qubit import Node, Pauli
 
 
 def tree_code_physical_measure(t: stim.TableauSimulator, root: Node, logical_basis: Pauli):
