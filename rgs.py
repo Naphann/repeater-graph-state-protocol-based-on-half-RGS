@@ -178,7 +178,7 @@ class HalfRGS:
                 if decode_tree_logical_z(u) is None:
                     flag = False
         if all(map(lambda res: res is not None, self.logical_results)) != flag:
-            raise RuntimeError("Fuck!")
+            raise RuntimeError("This should not happen!")
         return all(map(lambda res: res is not None, self.logical_results))
 
     def count_lost_photons(self) -> tuple[int, int]:

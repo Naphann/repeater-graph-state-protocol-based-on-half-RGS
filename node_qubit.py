@@ -1,6 +1,7 @@
 #! usr/bin/python3
 
 from enum import Enum
+from typing import Self
 
 import numpy as np
 
@@ -40,6 +41,17 @@ class Node:
                 new_queue.extend(u.children)
             queue = new_queue
         return return_list
+
+    def get_postorder_traversal(self) -> list[Self]:
+        ret: list[Self] = []
+
+        def __inner_postorder_recurse(u: Node):
+            for v in u.children:
+                __inner_postorder_recurse(v)
+            ret.append(u)
+
+        __inner_postorder_recurse(self)
+        return ret
 
     def get_indices_from_level(self, k: int) -> list[int]:
         """get all the indices from the nodes"""
