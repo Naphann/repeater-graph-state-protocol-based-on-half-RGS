@@ -55,16 +55,6 @@ class RgsConfig:
         self.loss_probability = loss_probability
         self.number_of_hops = number_of_hops
 
-        # # minimal circuit
-        # self.alice = 0
-        # self.bob = 3
-        # self.outer_emitter_left = 1
-        # self.outer_emitter_right = 4
-        # self.photon = 6
-        # self.photon_left = 5
-        # self.photon_right = 6
-        # self.emitters = [2 + i for i in range(len(bv))]
-
         # default
         self.alice = 0
         self.bob = 1
@@ -78,9 +68,16 @@ class RgsConfig:
         self.emitters = [8 + i for i in range(len(bv))]
 
         # data structures for data
+        # measurement tree stored outer qubits and inner qubits
         self.measurement_trees: list[list[Node]] = [[Node() for _ in range(m)] for _ in range(2 * number_of_hops)]
+        self.inner_emitter_measurements: list[list[bool]] = [[False for _ in range(m)] for _ in range(2 * number_of_hops)]
+        self.outer_emitter_measurements: list[list[bool]] = [[False for _ in range(m)] for _ in range(2 * number_of_hops)]
         self.logical_results: list[list[None | bool]] = [[None for _ in range(m)] for _ in range(2 * number_of_hops)]
         self.succeeded_bsm_arm_indices = [-1 for _ in range(number_of_hops)]
+
+        # adding trackers
+        self.outer_emitters_results: list[list[bool]] = [[False for _ in range(m)] for _ in range(2 * number_of_hops)]
+        self.inner_emitters_results: list[list[bool]] = [[False for _ in range(m)] for _ in range(2 * number_of_hops)]
 
         # debugging variables
         self.lost_photons = 0
@@ -108,18 +105,10 @@ class RgsConfig:
     def reset(self):
         self.t.reset(*range(self.emitters[-1] + 1))
         self.t.h(0, 1, 2, 3, 4, 5, *self.emitters)
-        # self.t.reset(*range(8))
-        # self.t.h(0, 1, 3, 4, *self.emitters)
-        self.logical_results: list[list[None | bool]] = [[None for _ in range(self.m)] for _ in range(2 * self.number_of_hops)]
+        self.logical_results = [[None for _ in range(self.m)] for _ in range(2 * self.number_of_hops)]
+        self.inner_emitter_measurements = [[False for _ in range(self.m)] for _ in range(2 * self.number_of_hops)]
+        self.outer_emitter_measurements = [[False for _ in range(self.m)] for _ in range(2 * self.number_of_hops)]
         self.succeeded_bsm_arm_indices = [-1 for _ in range(self.number_of_hops)]
-        self.circuit = stim.Circuit("""
-        H 0 1 2 3 4 5
-        """)
-        self.circuit.append("H", self.emitters)
-        # self.circuit = stim.Circuit("""
-        # H 0 1 3 4
-        # """)
-        # self.circuit.append("H", self.emitters)
 
         for arms in self.measurement_trees:
             for root in arms:
