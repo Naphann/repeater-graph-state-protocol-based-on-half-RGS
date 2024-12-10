@@ -4,11 +4,13 @@ import numpy as np
 
 
 def prob_bell(m, p):
+    """args: (number of arms, photon arrival probability)"""
     # linear BSM 50% when photons arrive
     return 1 - (1 - p * p / 2) ** m
 
 
 def prob_logical_measure_z(bv, p):
+    """args: (branching parameters, photon arrival probability)"""
     n = len(bv)
     if n % 2 == 1:
         mz = False
@@ -26,6 +28,7 @@ def prob_logical_measure_z(bv, p):
 
 
 def prob_logical_measure_x(bv, p):
+    """args: (branching parameters, photon arrival probability)"""
     n = len(bv)
     if n % 2 == 1:
         mz = True
@@ -51,3 +54,12 @@ def prob_rgs_trial(m, bv, p, number_of_hops):
     """p is photon arrival probability"""
     p_one_hop = prob_bell(m, p) * (prob_logical_measure_x(bv, p) ** (2)) * (prob_logical_measure_z(bv, p) ** (2 * m - 2))
     return p_one_hop**number_of_hops
+
+
+def error_probability_logical_z(bv, loss_prob, depo_prob):
+    pass
+
+
+def error_probability_logical_x(bv, loss_prob, depo_prob):
+    pass
+

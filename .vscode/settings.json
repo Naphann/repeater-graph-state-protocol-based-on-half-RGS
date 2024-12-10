@@ -6,11 +6,15 @@
       "source.organizeImports": "always"
     },
   },
+  "black-formatter.args": [
+    "--line-length=130"
+  ],
   "isort.args": [
     "--profile",
     "black"
   ],
   "flake8.args": [
-    "--max-line-length=200"
-  ]
+    "--max-line-length=130"
+  ],
+  "python.analysis.typeCheckingMode": "basic"
 }

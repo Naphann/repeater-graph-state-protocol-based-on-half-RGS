@@ -18,14 +18,14 @@ class Node:
         self.measurement_result: bool | None = None  # raw measurement results, None if not measured
         self.eigenvalue: bool | None = None  # use to compute parity, corrected results after taking side effects into account
         self.measurement_basis: Pauli | None = None
-        self.children: list[Node] = []
+        self.children: list[Self] = []
         self.is_lost = False  # denote whether the qubit is lost in the fiber
         self.has_z = False  # denote whether the qubit has Z side effect from the emission process
 
     def get_postorder_traversal(self) -> list[Self]:
         ret: list[Self] = []
 
-        def __inner_postorder_recurse(u: Node):
+        def __inner_postorder_recurse(u: Self):
             for v in u.children:
                 __inner_postorder_recurse(v)
             ret.append(u)
@@ -46,13 +46,22 @@ class Node:
 
 class RgsConfig:
 
-    def __init__(self, number_of_hops: int, m: int, bv: list[int], loss_probability: float, tab_sim: stim.TableauSimulator):
+    def __init__(
+        self,
+        number_of_hops: int,
+        m: int,
+        bv: list[int],
+        loss_probability: float,
+        depolarizing_error_probability: float,
+        tab_sim: stim.TableauSimulator,
+    ):
         self.rng = np.random.default_rng()
         self.t = tab_sim
 
         self.m = m
         self.bv = bv
         self.loss_probability = loss_probability
+        self.error_probability = depolarizing_error_probability
         self.number_of_hops = number_of_hops
 
         # default
@@ -84,7 +93,7 @@ class RgsConfig:
         self.total_photons = 0
         self.correct_bell_pair_count = 0
         self.incorrect_bell_pair_count = 0
-        self.unentangled_pair_count = 0
+        self.other_error_count = 0
 
         # debugging circuit
         self.circuit = stim.Circuit()
@@ -119,4 +128,4 @@ class RgsConfig:
         self.total_photons = 0
         self.correct_bell_pair_count = 0
         self.incorrect_bell_pair_count = 0
-        self.unentangled_pair_count = 0
+        self.other_error_count = 0

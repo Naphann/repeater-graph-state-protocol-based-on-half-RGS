@@ -27,7 +27,7 @@ class Node:
         self.measurement_result: bool | None = None  # this should be True and False if the qubit has been measured indicating the raw measurement result
         self.eigenvalue: bool | None = None  # use this to track the decoded measurement (after taking side effect and raw results into account)
         self.measurement_basis: Pauli | None = None
-        self.children: list[Node] = []
+        self.children: list[Self] = []
         self.is_lost = False  # this is used to denote whether the qubit is lost in the fiber or not
         self.has_z = False  # this is used to denote whether the qubit has Z side effect from the emission process or not (only from the emission!!)
 
@@ -45,7 +45,7 @@ class Node:
     def get_postorder_traversal(self) -> list[Self]:
         ret: list[Self] = []
 
-        def __inner_postorder_recurse(u: Node):
+        def __inner_postorder_recurse(u: Self):
             for v in u.children:
                 __inner_postorder_recurse(v)
             ret.append(u)
